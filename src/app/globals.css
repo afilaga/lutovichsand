@@ -34,8 +34,8 @@ body {
   background: linear-gradient(to bottom,
       transparent,
       rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
-  overflow: hidden;
-  /* Prevent default scroll, handle via Lenis */
+  overflow-x: hidden;
+  /* Allow vertical scroll on mobile, hide horizontal */
 }
 
 @layer utilities {
@@ -45,7 +45,8 @@ body {
 }
 
 canvas {
-  touch-action: none;
+  touch-action: pan-y pinch-zoom;
+  /* Allow scroll gestures on mobile while preventing interference */
 }
 
 /* Custom Scrollbar for non-touch devices */

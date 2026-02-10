@@ -11,6 +11,12 @@ interface SequenceScrollProps {
     className?: string;
 }
 
+// Detect mobile device
+const isMobileDevice = () => {
+    if (typeof window === "undefined") return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+};
+
 export default function SequenceScroll({
     heroSequencePath,
     heroFrameCount,
@@ -22,6 +28,7 @@ export default function SequenceScroll({
     const [imagesHero, setImagesHero] = useState<HTMLImageElement[]>([]);
     const [imagesSecond, setImagesSecond] = useState<HTMLImageElement[]>([]);
     const [loaded, setLoaded] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     // Scroll progress for the entire page
     const { scrollY } = useScroll();
@@ -29,11 +36,14 @@ export default function SequenceScroll({
     const [documentHeight, setDocumentHeight] = useState(0);
 
     useEffect(() => {
+        // Check if mobile on mount
+        setIsMobile(isMobileDevice());
+
         const handleResize = () => {
             setWindowHeight(window.innerHeight);
             setDocumentHeight(document.body.scrollHeight - window.innerHeight);
 
-            if (canvasRef.current) {
+            if (canvasRef.current && !isMobileDevice()) {
                 canvasRef.current.width = window.innerWidth;
                 canvasRef.current.height = window.innerHeight;
             }
@@ -42,14 +52,18 @@ export default function SequenceScroll({
         // Initial measure
         handleResize();
 
-        // Update on resize and also periodically or on scroll to catch dynamic content height changes?
-        // Resize observer on body would be better but let's stick to simple first.
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // Preload Images
+    // Preload Images - skip on mobile for performance
     useEffect(() => {
+        // Skip heavy image loading on mobile devices
+        if (isMobileDevice()) {
+            setLoaded(true); // Mark as loaded to remove loading indicator
+            return;
+        }
+
         const loadImages = async () => {
             const promisesHero = [];
             const promisesSecond = [];
@@ -61,7 +75,6 @@ export default function SequenceScroll({
                 promisesHero.push(
                     new Promise<HTMLImageElement>((resolve) => {
                         img.onload = () => resolve(img);
-                        // Handle error minimally to avoid crash
                         img.onerror = () => resolve(img);
                     })
                 );
@@ -90,9 +103,10 @@ export default function SequenceScroll({
         loadImages();
     }, [heroSequencePath, heroFrameCount, secondSequencePath, secondFrameCount]);
 
-    // Render Loop
+    // Render Loop - skip on mobile
     useMotionValueEvent(scrollY, "change", (latest) => {
-        if (!loaded || !canvasRef.current || windowHeight === 0) return;
+        // Skip canvas rendering on mobile devices
+        if (isMobile || !loaded || !canvasRef.current || windowHeight === 0) return;
 
         const ctx = canvasRef.current.getContext("2d");
         if (!ctx) return;
@@ -152,10 +166,21 @@ export default function SequenceScroll({
 
     return (
         <div className={`fixed top-0 left-0 w-full h-full z-0 ${className}`}>
-            <canvas
-                ref={canvasRef}
-                className="w-full h-full object-cover"
-            />
+            {/* Hide canvas on mobile, show static fallback */}
+            {!isMobile ? (
+                <canvas
+                    ref={canvasRef}
+                    className="w-full h-full object-cover"
+                />
+            ) : (
+                /* Mobile fallback - static gradient background */
+                <div 
+                    className="w-full h-full"
+                    style={{
+                        background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f0f 100%)'
+                    }}
+                />
+            )}
             {/* Loading Indicator */}
             {!loaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black text-white z-50">
