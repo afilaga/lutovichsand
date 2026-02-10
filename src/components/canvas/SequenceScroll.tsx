@@ -166,18 +166,19 @@ export default function SequenceScroll({
 
     return (
         <div className={`fixed top-0 left-0 w-full h-full z-0 ${className}`}>
-            {/* Hide canvas on mobile, show static fallback */}
+            {/* Hide canvas on mobile, show static image fallback */}
             {!isMobile ? (
                 <canvas
                     ref={canvasRef}
                     className="w-full h-full object-cover"
                 />
             ) : (
-                /* Mobile fallback - static gradient background */
+                /* Mobile fallback - static hero image (much lighter than 384 frames) */
                 <div 
-                    className="w-full h-full"
+                    className="w-full h-full bg-cover bg-center bg-no-repeat"
                     style={{
-                        background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f0f 100%)'
+                        backgroundImage: `url(${heroSequencePath}/000.jpg)`,
+                        backgroundColor: '#0f0f0f'
                     }}
                 />
             )}
