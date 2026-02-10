@@ -18,7 +18,7 @@ const isMobileDevice = () => {
 };
 
 // Mobile optimization: use every Nth frame to reduce memory
-const MOBILE_FRAME_SKIP = 8; // Load every 8th frame (192 -> 24 frames)
+const MOBILE_FRAME_SKIP = 3; // Load every 3rd frame (192 -> 64 frames) - balance between smoothness and performance
 const getMobileFrameIndex = (index: number, total: number) => {
     return Math.min(total - 1, index * MOBILE_FRAME_SKIP);
 };
