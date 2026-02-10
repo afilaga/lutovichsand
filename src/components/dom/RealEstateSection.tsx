@@ -6,18 +6,16 @@ import GlassCard from "@/components/ui/GlassCard";
 
 export default function RealEstateSection() {
     return (
-        <section className="min-h-screen flex items-center justify-center p-6 relative z-10 w-full">
-            <GlassCard intensity="high" className="max-w-7xl w-full grid md:grid-cols-2 gap-12 items-center p-8 md:p-12">
+        <section className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative z-10 w-full">
+            <GlassCard intensity="high" className="max-w-7xl w-full grid md:grid-cols-2 gap-6 md:gap-12 items-center p-5 sm:p-8 md:p-12">
                 <motion.div
-                    className="relative aspect-[4/5] overflow-hidden"
+                    className="relative aspect-[4/5] overflow-hidden rounded-lg"
                     initial={{ opacity: 0, x: -50 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8 }}
                 >
-                    {/* Placeholder for image or just text */}
                     <div className="absolute inset-0 bg-brand-charcoal/20"></div>
-                    {/* img tag self-closing or paired? self-closing is void element. */}
                     <img
                         src="/images/real-estate-placeholder.jpg"
                         alt="Real Estate"
@@ -27,7 +25,7 @@ export default function RealEstateSection() {
                         }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-white/20 text-9xl font-serif">2088</span>
+                        <span className="text-white/20 text-6xl sm:text-8xl md:text-9xl font-serif">2088</span>
                     </div>
                 </motion.div>
 
@@ -37,17 +35,17 @@ export default function RealEstateSection() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.8, delay: 0.2 }}
                 >
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="h-px w-12 bg-brand-gold"></div>
-                        <span className="text-brand-gold text-sm tracking-[0.2em] uppercase">01 / 2088 Real Estate</span>
+                    <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
+                        <div className="h-px w-8 md:w-12 bg-brand-gold"></div>
+                        <span className="text-brand-gold text-xs md:text-sm tracking-[0.15em] md:tracking-[0.2em] uppercase">01 / 2088 Real Estate</span>
                     </div>
 
-                    <h2 className="font-serif text-5xl md:text-6xl text-brand-white mb-8 leading-tight">
+                    <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-brand-white mb-4 md:mb-8 leading-tight">
                         Мы не продаем <br />
                         <span className="text-brand-white/50">квадратные метры.</span>
                     </h2>
 
-                    <p className="text-lg text-brand-white/70 font-light leading-relaxed mb-8">
+                    <p className="text-base md:text-lg text-brand-white/70 font-light leading-relaxed mb-6 md:mb-8">
                         Мы управляем доходностью. В мире, где каждый метр имеет цену, мы находим те,
                         которые имеют ценность. Наш подход основан на глубокой аналитике и понимании
                         рынка ОАЭ.
@@ -57,9 +55,12 @@ export default function RealEstateSection() {
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         transition={{ delay: 0.6 }}
-                        className="mt-12"
+                        className="mt-6 md:mt-12"
                     >
-                        <button className="flex items-center gap-2 text-brand-gold font-bold uppercase tracking-wider text-sm hover:gap-4 transition-all">
+                        <button 
+                            type="button"
+                            className="flex items-center gap-2 text-brand-gold font-bold uppercase tracking-wider text-sm hover:gap-4 transition-all"
+                        >
                             Получить инвестиционный разбор
                             <ArrowUpRight className="w-4 h-4" />
                         </button>
