@@ -17,6 +17,12 @@ const isMobileDevice = () => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 };
 
+// Mobile optimization: use every Nth frame to reduce memory
+const MOBILE_FRAME_SKIP = 8; // Load every 8th frame (192 -> 24 frames)
+const getMobileFrameIndex = (index: number, total: number) => {
+    return Math.min(total - 1, index * MOBILE_FRAME_SKIP);
+};
+
 export default function SequenceScroll({
     heroSequencePath,
     heroFrameCount,
@@ -37,13 +43,15 @@ export default function SequenceScroll({
 
     useEffect(() => {
         // Check if mobile on mount
-        setIsMobile(isMobileDevice());
+        const mobile = isMobileDevice();
+        setIsMobile(mobile);
 
         const handleResize = () => {
             setWindowHeight(window.innerHeight);
             setDocumentHeight(document.body.scrollHeight - window.innerHeight);
 
-            if (canvasRef.current && !isMobileDevice()) {
+            if (canvasRef.current) {
+                // Set canvas size for both desktop and mobile
                 canvasRef.current.width = window.innerWidth;
                 canvasRef.current.height = window.innerHeight;
             }
@@ -56,21 +64,30 @@ export default function SequenceScroll({
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // Preload Images - skip on mobile for performance
+    // Preload Images - optimized for mobile
     useEffect(() => {
-        // Skip heavy image loading on mobile devices
-        if (isMobileDevice()) {
-            setLoaded(true); // Mark as loaded to remove loading indicator
-            return;
-        }
-
+        const isMobile = isMobileDevice();
+        
         const loadImages = async () => {
             const promisesHero = [];
             const promisesSecond = [];
 
-            for (let i = 0; i < heroFrameCount; i++) {
+            // For mobile: load every Nth frame to save memory
+            const heroStep = isMobile ? MOBILE_FRAME_SKIP : 1;
+            const secondStep = isMobile ? MOBILE_FRAME_SKIP : 1;
+            
+            // Calculate actual number of frames to load
+            const mobileHeroFrameCount = isMobile 
+                ? Math.ceil(heroFrameCount / heroStep) 
+                : heroFrameCount;
+            const mobileSecondFrameCount = isMobile 
+                ? Math.ceil(secondFrameCount / secondStep) 
+                : secondFrameCount;
+
+            for (let i = 0; i < mobileHeroFrameCount; i++) {
+                const frameIndex = isMobile ? getMobileFrameIndex(i, heroFrameCount) : i;
                 const img = new Image();
-                const paddedIndex = i.toString().padStart(3, "0");
+                const paddedIndex = frameIndex.toString().padStart(3, "0");
                 img.src = `${heroSequencePath}/${paddedIndex}.jpg`;
                 promisesHero.push(
                     new Promise<HTMLImageElement>((resolve) => {
@@ -80,9 +97,10 @@ export default function SequenceScroll({
                 );
             }
 
-            for (let i = 0; i < secondFrameCount; i++) {
+            for (let i = 0; i < mobileSecondFrameCount; i++) {
+                const frameIndex = isMobile ? getMobileFrameIndex(i, secondFrameCount) : i;
                 const img = new Image();
-                const paddedIndex = i.toString().padStart(3, "0");
+                const paddedIndex = frameIndex.toString().padStart(3, "0");
                 img.src = `${secondSequencePath}/${paddedIndex}.jpg`;
                 promisesSecond.push(
                     new Promise<HTMLImageElement>((resolve) => {
@@ -103,50 +121,45 @@ export default function SequenceScroll({
         loadImages();
     }, [heroSequencePath, heroFrameCount, secondSequencePath, secondFrameCount]);
 
-    // Render Loop - skip on mobile
+    // Render Loop - works on both desktop and mobile
     useMotionValueEvent(scrollY, "change", (latest) => {
-        // Skip canvas rendering on mobile devices
-        if (isMobile || !loaded || !canvasRef.current || windowHeight === 0) return;
+        if (!loaded || !canvasRef.current || windowHeight === 0) return;
 
         const ctx = canvasRef.current.getContext("2d");
         if (!ctx) return;
 
-        // Logic:
-        // 0px to windowHeight * 1.2 (approx): Sequence 1
-        // windowHeight * 1.2 to End: Sequence 2
-
-        // Let's define the "Switch Point"
-        // To make sure Sequence 1 finishes exactly when we want, let's say at 120vh.
         const switchPoint = windowHeight * 1.2;
-
         let img: HTMLImageElement | undefined;
+
+        // Calculate effective frame counts (different for mobile)
+        const effectiveHeroFrameCount = isMobile 
+            ? Math.ceil(heroFrameCount / MOBILE_FRAME_SKIP) 
+            : heroFrameCount;
+        const effectiveSecondFrameCount = isMobile 
+            ? Math.ceil(secondFrameCount / MOBILE_FRAME_SKIP) 
+            : secondFrameCount;
 
         if (latest < switchPoint) {
             // Sequence 1
-            const progress = latest / switchPoint; // 0 to 1
+            const progress = latest / switchPoint;
             const idx = Math.min(
-                heroFrameCount - 1,
-                Math.floor(progress * (heroFrameCount - 1))
+                effectiveHeroFrameCount - 1,
+                Math.floor(progress * (effectiveHeroFrameCount - 1))
             );
             img = imagesHero[idx];
         } else {
             // Sequence 2
-            // Map from switchPoint to documentHeight
             const remainingScroll = documentHeight - switchPoint;
-            // Avoid division by zero
             const progress = remainingScroll > 0 ? (latest - switchPoint) / remainingScroll : 0;
-
-            // Clamp progress 0 to 1
             const clampedProgress = Math.max(0, Math.min(1, progress));
-
             const idx = Math.min(
-                secondFrameCount - 1,
-                Math.floor(clampedProgress * (secondFrameCount - 1))
+                effectiveSecondFrameCount - 1,
+                Math.floor(clampedProgress * (effectiveSecondFrameCount - 1))
             );
             img = imagesSecond[idx];
         }
 
-        if (img) {
+        if (img && img.width > 0) {
             const canvas = canvasRef.current;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -166,26 +179,21 @@ export default function SequenceScroll({
 
     return (
         <div className={`fixed top-0 left-0 w-full h-full z-0 ${className}`}>
-            {/* Hide canvas on mobile, show static image fallback */}
-            {!isMobile ? (
-                <canvas
-                    ref={canvasRef}
-                    className="w-full h-full object-cover"
-                />
-            ) : (
-                /* Mobile fallback - static hero image (much lighter than 384 frames) */
-                <div 
-                    className="w-full h-full bg-cover bg-center bg-no-repeat"
-                    style={{
-                        backgroundImage: `url(${heroSequencePath}/000.jpg)`,
-                        backgroundColor: '#0f0f0f'
-                    }}
-                />
-            )}
+            {/* Canvas for both desktop and mobile - mobile uses reduced frame count */}
+            <canvas
+                ref={canvasRef}
+                className="w-full h-full object-cover"
+                style={{ touchAction: 'pan-y pinch-zoom' }}
+            />
             {/* Loading Indicator */}
             {!loaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black text-white z-50">
-                    Loading Experience...
+                    <div className="text-center">
+                        <div className="text-lg font-light mb-2">Loading Experience</div>
+                        <div className="text-sm text-white/50">
+                            {isMobile ? 'Optimized for mobile' : 'Loading sequences...'}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
